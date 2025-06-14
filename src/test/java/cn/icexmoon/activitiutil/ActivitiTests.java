@@ -3,6 +3,7 @@ package cn.icexmoon.activitiutil;
 import org.activiti.engine.ProcessEngine;
 import org.activiti.engine.ProcessEngines;
 import org.activiti.engine.RepositoryService;
+import org.activiti.engine.history.HistoricProcessInstance;
 import org.activiti.engine.repository.Deployment;
 import org.activiti.engine.runtime.ProcessInstance;
 import org.activiti.engine.task.Task;
@@ -91,6 +92,14 @@ public class ActivitiTests {
             activitiUtils.rejectTask("527516", "Brus", "审批未通过", vars);
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    @Test
+    public void testListProcessInstances(){
+        List<HistoricProcessInstance> processInstances = activitiUtils.listHistoricProcessInstances("ZhangSan", null, null);
+        for (HistoricProcessInstance processInstance : processInstances) {
+            activitiUtils.printProcessInstance(processInstance.getId());
         }
     }
 }

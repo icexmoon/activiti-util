@@ -1,11 +1,14 @@
 package cn.icexmoon.activitiutil;
 
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.activiti.engine.HistoryService;
 import org.activiti.engine.ProcessEngine;
 import org.activiti.engine.RuntimeService;
 import org.activiti.engine.TaskService;
+import org.activiti.engine.history.HistoricProcessInstance;
 import org.activiti.engine.history.HistoricTaskInstance;
+import org.activiti.engine.history.HistoricTaskInstanceQuery;
 import org.activiti.engine.history.HistoricVariableInstance;
 import org.activiti.engine.runtime.ProcessInstance;
 import org.activiti.engine.task.IdentityLink;
@@ -250,7 +253,7 @@ public class ActivitiUtils {
                 .taskId(taskId)
                 .singleResult();
         // 检查用户是否有权审批该任务
-        if (!canApprovalTask(userId, taskId)){
+        if (!canApprovalTask(userId, taskId)) {
             throw new RuntimeException("用户[%s]无权审批任务[%s]".formatted(userId, taskId));
         }
         // 如果指定用户不是任务的委托人，先获取任务
@@ -263,6 +266,7 @@ public class ActivitiUtils {
 
     /**
      * 检查用户是否有权审批指定任务
+     *
      * @param userId 用户id
      * @param taskId 任务id
      * @return 是否有权限
@@ -467,7 +471,7 @@ public class ActivitiUtils {
      */
     public void rejectTask(String taskId, String userId, String reason, Map<String, Object> variables) {
         // 检查用户是否有权审批该任务
-        if (!canApprovalTask(userId, taskId)){
+        if (!canApprovalTask(userId, taskId)) {
             throw new RuntimeException("用户[%s]无权审批任务[%s]".formatted(userId, taskId));
         }
         TaskService taskService = processEngine.getTaskService();
@@ -482,5 +486,41 @@ public class ActivitiUtils {
         if (processInstance != null) {
             runtimeService.deleteProcessInstance(task.getProcessInstanceId(), reason);
         }
+    }
+
+    /**
+     * 返回指定委托人审批过的历史工作流实例列表
+     *
+     * @param assignee  指定委托人
+     * @param startTime 查询开始时间
+     * @param endTime   查询结束时间
+     * @return 历史工作流实例列表
+     */
+    public List<HistoricProcessInstance> listHistoricProcessInstances(@NonNull String assignee,
+                                                                      Date startTime,
+                                                                      Date endTime) {
+        HistoryService historyService = processEngine.getHistoryService();
+        HistoricTaskInstanceQuery historicTaskInstanceQuery = historyService.createHistoricTaskInstanceQuery()
+                .taskAssignee(assignee);
+        if (startTime != null) {
+            historicTaskInstanceQuery.taskCompletedAfter(startTime);
+        }
+        if (endTime != null) {
+            historicTaskInstanceQuery.taskCompletedBefore(endTime);
+        }
+        List<HistoricTaskInstance> taskInstances = historicTaskInstanceQuery
+                .list();
+        if (taskInstances == null || taskInstances.isEmpty()) {
+            return Collections.emptyList();
+        }
+        Set<String> processInstanceIds = taskInstances.stream().map(TaskInfo::getProcessInstanceId).collect(Collectors.toSet());
+        if (processInstanceIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<HistoricProcessInstance> processInstances = historyService.createHistoricProcessInstanceQuery()
+                .processInstanceIds(processInstanceIds)
+                .orderByProcessInstanceEndTime().desc()
+                .list();
+        return processInstances;
     }
 }

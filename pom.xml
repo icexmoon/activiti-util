@@ -4,7 +4,7 @@
 
     <groupId>cn.icexmoon</groupId>
     <artifactId>activiti-util</artifactId>
-    <version>1.0.2</version>
+    <version>1.0.3</version>
     <packaging>jar</packaging>
     <description>Activiti 的辅助工具 API 集合</description>
 
